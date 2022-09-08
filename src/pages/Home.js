@@ -1,48 +1,57 @@
 import React from 'react';
 import AddNote from 'src/components/AddNote';
 import ListNote from 'src/components/ListNote';
-import { addNote, deleteNote, getAllNotes } from 'src/data/notes';
+import Spinner from 'src/components/Spinner';
+import { addNote, deleteNote, getActiveNotes } from 'src/data/network-data';
 
 function Home() {
-  const [notes, setNotes] = React.useState(() => getAllNotes());
+  const [notes, setNotes] = React.useState([]);
   const [title, setTitle] = React.useState('');
   const [body, setBody] = React.useState('');
-  const [isArchived, setArchived] = React.useState(false);
+  const [initializing, setInitializing] = React.useState(true);
 
-  const onInputTitleHandler = (event) => {
+  const onTitleInput = (event) => {
     setTitle(event.target.innerText);
   }
 
-  const onInputBodyHandler = (event) => {
+  const onBodyInput = (event) => {
     setBody(event.target.innerText);
   }
 
-  const onClickArchiveHandler = () => {
-    setArchived(!isArchived);
+  const onCreateHandler = async () => {
+    await addNote({ title, body });
   }
 
-  const onClickCreateHandler = () => {
-    addNote({ title, body, isArchived });
-    setNotes(getAllNotes());
+  const onDeleteHandler = async (id) => {
+    await deleteNote(id);
   }
 
-  const onClickDeleteHandler = (id) => {
-    deleteNote(id);
-    setNotes(getAllNotes());
+  React.useEffect(() => {
+    async function setCurrentActiveNotes() {
+      const { error, data } = await getActiveNotes();
+      if (!error) {
+        setNotes(data);
+      }
+      setInitializing(false);
+    }
+
+    setCurrentActiveNotes();
+  }, [notes]);
+
+  if (initializing) {
+    return <Spinner />;
   }
 
   return (
     <React.Fragment>
       <div className="inline-block w-full h-auto">
         <AddNote
-          onInputTitle={onInputTitleHandler}
-          onInputBody={onInputBodyHandler}
-          onClickArchive={onClickArchiveHandler}
-          onClickCreate={onClickCreateHandler}
-          isArchived={isArchived}
+          onTitleInput={onTitleInput}
+          onBodyInput={onBodyInput}
+          onButtonClick={onCreateHandler}
         />
       </div>
-      <ListNote notes={notes} onClickDelete={onClickDeleteHandler} />
+      <ListNote notes={notes} onButtonClick={onDeleteHandler} />
     </React.Fragment>
   );
 }
